@@ -78,7 +78,7 @@ Xv6 在处理Trap时，根据Trap发生在内核代码还是用户代码中采�
 
 ***
 
-**`uservec` 的处理过程**
+### **`第一步：uservec` 的处理过程**
 
 `uservec` 位于 `trampoline.S` 文件（[`kernel/trampoline.S:22`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trampoline.S#L22)）。它的任务如下：
 
@@ -102,37 +102,37 @@ Xv6 在处理Trap时，根据Trap发生在内核代码还是用户代码中采�
 
 ***
 
-**`usertrap` 的处理过程**
+### **`第二步：usertrap` 的处理过程**
 
 `usertrap` 的任务是分析Trap原因并处理（[`kernel/trap.c:37`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trap.c#L37)）。它的主要步骤包括：
 
 1. **调整Trap处理程序**：
-   * 将 `stvec` 设置为 `kernelvec`，以便处理后续内核中的Trap。
+   * `usertrap` 首先修改 `stvec`，使得在内核中发生陷阱时，应该由 `kernelvec` 处理，而不是 `uservec`。
 2. **保存状态**：
-   * 保存 `sepc`（用户程序计数器）以备后续返回。
-   * 如果Trap是系统调用，调用 `syscall` 处理；如果是设备中断，调用 `devintr`；否则认为是异常，内核终止发生错误的进程。
+   * 保存 `sepc`（用户程序计数器）以备后续返回。（ 因为 `usertrap` 可能会调用 `yield` 来切换到另一个进程的内核线程，而在这个过程中，可能会返回到用户空间，因此需要保存 `sepc`。）
+   * 如果Trap是系统调用，usertrap调用 `syscall` 处理；如果是设备中断，调用 `devintr`；否则认为是异常，内核终止发生错误的进程。
 3. **更新用户程序计数器**：
-   * 对于系统调用的情况，`sepc` 的值增加 4，因为 RISC-V 的系统调用将 `pc` 留在 `ecall` 指令处，而用户代码需要从下一条指令继续执行。
+   * 对于系统调用的情况，`sepc` 的值增加 4，因为 RISC-V 的系统调用时会将 `pc` 指向`ecall` 指令处，而用户代码需要从接下来的指令继续执行。
 4. **检查进程状态**：
-   * 在返回前检查进程是否被终止或者是否需要让出 CPU（比如处理定时器中断时）。
+   * 在处理完这些任务后，`usertrap` 会检查进程是否被终止或是否需要让出 CPU（例如定时器中断）。
 
 ***
 
-**`usertrapret` 和返回用户空间**
+### **`第三步：usertrapret` 和返回用户空间**
 
 1. **准备控制寄存器**：
-   * 设置 `stvec` 为 `uservec`，以处理未来从用户空间发生的陷阱。
-   * 设置 `sepc` 为之前保存的用户程序计数器。
+   * usertrapret会设置 `stvec` 为 `uservec`，以处理未来从用户空间发生的Trao。
+   * 将 `stvec` 设置回 `uservec`，并准备好 `uservec` 依赖的 `trapframe` 字段
 2. **调用 `userret`**：
-   * `usertrapret` 调用位于 trampoline 页中的 `userret`（[`kernel/trampoline.S:101`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trap.c#L37)）。
-   * `userret` 将 `satp` 切换回用户页表。
-3. **恢复用户寄存器并返回**：
-   * `userret` 使用 `TRAPFRAME` 地址恢复用户寄存器。
+   * `usertrapret` 调用位于 trampoline 页中的 `userret`（[`kernel/trampoline.S:101`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trap.c#L37)）。这时候，会将进程的用户页表指针作为参数传递给 `a0`
+   * `userret` 将 `satp` 切换回进程用户页表。**用户页表映射了 trampoline page 和 trapframe，而内核的内容不在其中。**
+3. **userret切换到用户页表后，开始恢复用户寄存器和trapframe并返回**：
+   * `userret` 使用 `TRAPFRAME` 地址恢复用户寄存器。会加载 `TRAPFRAME` 的地址到 `a0`，并从中恢复用户寄存器的内容，包括之前保存的 `a0`。
    * 最后执行 `sret` 指令返回到用户空间。
 
 ***
 
-**关键机制**：Trampoline 页和 `trapframe` 是 Xv6 处理用户空间陷阱的核心设计，它们解决了硬件设计上的约束（如页表未切换）。
+**关键机制**：<mark style="color:blue;">Trampoline 页和</mark> <mark style="color:blue;"></mark><mark style="color:blue;">`trapframe`</mark> <mark style="color:blue;"></mark><mark style="color:blue;">是 Xv6 处理用户空间Trao的核心设计，它们解决了硬件设计上的约束（如页表未切换）。</mark>
 
 **模块化流程**：
 
