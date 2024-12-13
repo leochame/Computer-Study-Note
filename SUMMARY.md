@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Welcome](README.md)
+* [计算机学习笔记](README.md)
 
 ## Lecture
 
