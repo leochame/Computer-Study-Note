@@ -160,13 +160,66 @@ Trapframe 中还包含了当前进程的内核栈地址、当前 CPU 的 `hartid
 
 ### **`第三步：usertrapret` 和返回用户空间**
 
-1. ：fanmfanmhu
-   * usertrapret会设置 `stvec` 为 `uservec`，以处理未来从用户空间发生的Trao。
-   * 将 `stvec` 设置回 `uservec`，并准备好 `uservec` 依赖的 `trapframe` 字段
-2. **调用 `userret`**：
+**q**
+
+
+
+
+
+
+
+在返回用户空间之前，usertrapret首先做的就是关闭中断。这是因为：
+
+* 在返回到用户空间之前，内核需要更新 `STVEC` 寄存器（用来存储中断处理函数的地址）。如果此时发生了中断，可能会导致程序错误，因为它会跳转到用户空间的中断处理代码，而实际上我们仍然在内核中执行。
+* 为了避免这个问题，我们首先关闭中断，确保在更新 `STVEC` 寄存器时，不会发生意外的中断。
+
+1. **更新STVEC**
+   * usertrapret会设置 `stvec` 为 更新为指向 `trampoline` 代码的地址。（`Trampoline` 是一段特殊的汇编代码，负责完成用户空间和内核空间的切换工作。）确保当 `sret` 指令执行时，能够顺利跳转到用户空间。
+2. #### **填充 `trapframe` 结构：**`usertrapret` 在返回之前会对 `trapframe` 结构中的一些字段进行填充，为即将跳转到用户空间做准备。这些操作确保当用户进程从内核返回时，它能够恢复正确的上下文，包括寄存器、内存映射等。
+
+> 主要的填充项包括：
+>
+> **Kernel page table 的指针**：确保我们在返回到用户空间时能够正确使用用户空间的页表。
+>
+> **当前进程的内核栈**：这允许用户进程恢复执行时能够访问其栈。
+>
+> **`usertrap` 函数的指针**：在 `trampoline` 代码执行时，能正确跳转到 `usertrap` 函数。
+>
+> **CPU 核编号**：`tp` 寄存器保存当前 CPU 核编号，`usertrapret` 会将其存储到 `trapframe` 中，以便恢复。
+
+**3.设置 `SSTATUS` 寄存器:**
+
+* **`SPP`**：这个位控制 `sret` 指令的行为。`SPP` 为 0 时，表示下一次执行 `sret` 时要返回到用户模式；为 1 时，表示返回到内核模式。
+* **`SPIE`**：这个位控制在执行完 `sret` 指令后，是否重新打开中断。因为我们希望在返回用户空间后继续响应中断，因此需要将 `SPIE` 设置为 1。
+
+4. **设置指令计数器**
+
+它用于返回到用户模式。执行 `sret` 后，CPU 会使用 `SEPC` 寄存器中的地址作为程序计数器（PC）的值，并跳转回用户代码。`usertrapret` 通过设置 `SEPC` 来确保程序跳转到用户空间时，指令计数器指向正确的位置。
+
+5. **切换页表**
+
+在返回到用户空间之前，操作系统还需要切换页表。这是因为用户空间和内核空间通常有不同的虚拟地址空间。`usertrapret` 在这里准备了用户页表的指针，并将它作为参数传递给汇编代码中的 `trampoline`。在 `trampoline` 中，`userret` 函数会执行页表切换，确保用户空间能够使用正确的页表。
+
+
+
+
+
+`最后，usertrapret` 计算出跳转到 `trampoline` 中的 `userret` 函数的地址。`userret` 函数负责执行用户空间的恢复工作，最终会通过 `sret` 指令将控制权交给用户程序。
+
+`usertrapret` 会通过函数指针调用 `userret` 函数，传递两个参数：`userret` 函数的地址和页表指针。这些参数存储在 `a0` 和 `a1` 寄存器中。
+
+
+
+***
+
+
+
+
+
+1. **调用 `userret`**：
    * `usertrapret` 调用位于 trampoline 页中的 `userret`（[`kernel/trampoline.S:101`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trap.c#L37)）。这时候，会将进程的用户页表指针作为参数传递给 `a0`
    * `userret` 将 `satp` 切换回进程用户页表。**用户页表映射了 trampoline page 和 trapframe，而内核的内容不在其中。**
-3. **userret切换到用户页表后，开始恢复用户寄存器和trapframe并返回**：
+2. **userret切换到用户页表后，开始恢复用户寄存器和trapframe并返回**：
    * `userret` 使用 `TRAPFRAME` 地址恢复用户寄存器。会加载 `TRAPFRAME` 的地址到 `a0`，并从中恢复用户寄存器的内容，包括之前保存的 `a0`。
    * 最后执行 `sret` 指令返回到用户空间。
 
