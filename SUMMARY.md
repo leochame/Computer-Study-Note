@@ -1,14 +1,12 @@
 # Table of contents
 
-* [计算机学习笔记](README.md)
-
 ## OS
 
-* [MIT 6.S081](lecture/quickstart/README.md)
-  * [Lec01](lecture/quickstart/lec01.md)
-  * [Lec 03](lecture/quickstart/lec-03.md)
-  * [Lec 04 Page tables](lecture/quickstart/lec-04-page-tables.md)
-  * [Lec 05 Trap](lecture/quickstart/lec-05-trap.md)
+* [MIT 6.S081](README.md)
+  * [Lec01](os/mit-6.s081/lec01.md)
+  * [Lec 03](os/mit-6.s081/lec-03.md)
+  * [Lec 04 Page tables](os/mit-6.s081/lec-04-page-tables.md)
+  * [Lec 05 Trap](os/mit-6.s081/lec-05-trap.md)
 
 ## ComputerNetwork
 
