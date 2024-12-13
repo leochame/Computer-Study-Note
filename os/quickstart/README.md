@@ -1,5 +1,5 @@
 ---
-icon: bullseye-arrow
+icon: fill-drip
 ---
 
 # MIT 6.S081
