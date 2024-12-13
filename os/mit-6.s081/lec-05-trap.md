@@ -78,27 +78,51 @@ Xv6 在处理Trap时，根据Trap发生在内核代码还是用户代码中采�
 
 ***
 
+### **Trap执行的核心部件**
+
+**保存寄存器的地方：trapframe**
+
+RISC-V中，<mark style="color:blue;">内核有一个名为</mark><mark style="color:blue;">**trapframe**</mark><mark style="color:blue;">的结构体，它负责保存用户寄存器的值。当</mark><mark style="color:blue;">`ecall`</mark><mark style="color:blue;">触发时，内核通过一个特定的内存区域（</mark><mark style="color:blue;">**trapframe page**</mark><mark style="color:blue;">）保存所有寄存器的值。这个区域通常会被映射到用户进程的</mark><mark style="color:blue;">**page table**</mark><mark style="color:blue;">中。</mark>
+
+每个进程在其用户页表中都有一页专门存储寄存器信息。这个页面的虚拟地址是`0x3fffffe000`，它被用来存储寄存器值。内核的任务就是保存这些寄存器的值，以便后续恢复。用户寄存器的保存通过`trapframe`结构体完成，这个结构体包括了每个寄存器的保存槽位。内核事先设置好这个映射，让寄存器能够被保存和恢复。
+
+#### **`sscratch`寄存器的作用**
+
+RISC-V中有一个特殊的寄存器&#x53EB;**`sscratch`**  **，它是内核用来保存一个临时值的。内核在切换到用户空间之前，会将**trapframe page的地址**保存到`sscratch`中。这样，当`ecall`指令触发时，内核可以通过交换`a0`寄存器和`sscratch`寄存器的值，快速获得**trapframe page\*\*的虚拟地址，从而开始保存寄存器的内容。
+
+#### **trampoline页的特殊性**
+
+trampoline页是一个特殊的页，它在用户空间和内核空间中都有相同的映射。这意味着，当内核切换页表时，**trampoline页**的虚拟地址在两个页表中是相同的。因此，内核可以继续执行`trampoline.S`中的代码，而不会因为页表切换而导致崩溃。
+
+***
+
+
+
 ### **`第一步：uservec` 的处理过程**
 
 `uservec` 位于 `trampoline.S` 文件（[`kernel/trampoline.S:22`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trampoline.S#L22)）。它的任务如下：
 
 **首先，保存用户寄存器**：
 
-* 当 `uservec` 开始执行时，所有 32 个寄存器的值均属于被中断的用户代码。为了返回到用户空间后可以恢复，这些寄存器需要保存在内存中。
-* 存储寄存器的值需要使用一个寄存器作为地址，而此时没有可用的通用寄存器。RISC-V 提供了 `sscratch` 寄存器来解决这个问题。
+> 当 `uservec` 开始执行时，所有 32 个寄存器的值均属于被中断的用户代码。为了返回到用户空间后可以恢复，这些寄存器需要保存在内存中。
+>
+> 存储寄存器的值需要使用一个寄存器作为地址，而此时没有可用的通用寄存器。RISC-V 提供`sscratch` 寄存器来解决这个问题。
+
 * `uservec` 开始时通过 `csrw` 指令将 `a0` 的值保存到 `sscratch` 中。这样，`uservec` 就有了一个可用的寄存器 `a0`。
 
-**接下来，就是保存32位用户寄存器到** ：
+**接下来，就是保存32位用户寄存器到 tarpframe**：
 
-* 操作系统为每个进程都有一页内存用于存储一个 `trapframe` 结构（[`kernel/proc.h:43`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/proc.h#L43)）。`trapframe` 包括保存 32 个用户寄存器的空间。
-* 每个用户进程都有自己的一页，用来存储它的状态。操作系统已经在进程的页表里“悄悄”安排好这个页面了，每个进程都能通过固定的虚拟地址（`0x3ffffffe000`）找到它。
-* 因为此时的 `satp` 仍然指向用户页表，`trapframe` 必须映射到用户地址空间。Xv6 将每个进程的 `trapframe` 映射到 `TRAPFRAME` 虚拟地址（位于 `TRAMPOLINE` 之下）。
+> 操作系统为每个进程都有一页内存用于存储一个 `trapframe` 结构（[`kernel/proc.h:43`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/proc.h#L43)）。`trapframe` 包括保存 32 个用户寄存器的空间。
+>
+> 每个用户进程都有自己的一页，用来存储它的状态。操作系统已经在进程的页表里“悄悄”安排好这个页面了，每个进程都能通过固定的虚拟地址（`0x3ffffffe000`）找到它。
+>
+> 因为此时的 `satp` 仍然指向用户页表，`trapframe` 必须映射到用户地址空间。Xv6 将每个进程的 `trapframe` 映射到 `TRAPFRAME` 虚拟地址（位于 `TRAMPOLINE` 之下）。
 
-因此，`uservec` 将 `TRAPFRAME` 的地址加载到 `a0` 寄存器，并将所有用户寄存器的内容保存到这个位置，包括从 `sscratch` 中读取回来的 `a0` 值。
+`uservec` 将 `TRAPFRAME` 的地址加载到 `a0` 寄存器，并将每个用户寄存器的内容保存到这个位置，包括从 `sscratch` 中读取回来的 `a0` 值。
 
-**最后，**&#x54;r`pframe` 中还包含了当前进程的内核栈地址、当前 CPU 的 `hartid`、`usertrap` 函数的地址，以及内核页表的地址。
 
-`uservec` 会读取这些值，将 `satp` 切换到内核页表，并跳转到 `usertrap`
+
+Trapframe 中还包含了当前进程的内核栈地址、当前 CPU 的 `hartid（CPU编号）`、`usertrap` 函数的地址，以及内核页表的地址。`uservec` 会读取这些值，将 `satp` 切换到内核页表，并跳转到 `usertrap。`这时内核开始执行实际的内核代码，处理系统调用、进程调度等任务。
 
 ***
 
@@ -106,21 +130,37 @@ Xv6 在处理Trap时，根据Trap发生在内核代码还是用户代码中采�
 
 `usertrap` 的任务是分析Trap原因并处理（[`kernel/trap.c:37`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trap.c#L37)）。它的主要步骤包括：
 
-1. **调整Trap处理程序**：
+1. **首先更新STEVC寄存器**：
    * `usertrap` 首先修改 `stvec`，使得在内核中发生陷阱时，应该由 `kernelvec` 处理，而不是 `uservec`。
-2. **保存状态**：
-   * 保存 `sepc`（用户程序计数器）以备后续返回。（ 因为 `usertrap` 可能会调用 `yield` 来切换到另一个进程的内核线程，而在这个过程中，可能会返回到用户空间，因此需要保存 `sepc`。）
-   * 如果Trap是系统调用，usertrap调用 `syscall` 处理；如果是设备中断，调用 `devintr`；否则认为是异常，内核终止发生错误的进程。
-3. **更新用户程序计数器**：
-   * 对于系统调用的情况，`sepc` 的值增加 4，因为 RISC-V 的系统调用时会将 `pc` 指向`ecall` 指令处，而用户代码需要从接下来的指令继续执行。
-4. **检查进程状态**：
-   * 在处理完这些任务后，`usertrap` 会检查进程是否被终止或是否需要让出 CPU（例如定时器中断）。
+2.  **获取当前进程信息：**
+
+    程序会调用myproc函数获取当前正在执行的进程。myproc通过hartid（CPU的核心ID）来索引当前CPU核心上正在运行的进程。
+3. **保存用户状态**：
+
+> 用户程序执行时，CPU 会维护一个叫 `SEPC`（程序计数器）的寄存器，用来保存当前指令的地址。以便于后面恢复程序的执行。
+
+* 在 `usertrap` 函数中，程序会将 `SEPC` 寄存器中的地址保存在 `trapframe` 结构中，这样可以避免在处理过程中丢失信息。
+
+4\. **检查触发 `trap` 的原因**
+
+* 通过检查 `SCAUSE` 寄存器，程序可以知道是何种类型的异常或中断触发了 `trap`。
+* 如果Trap是系统调用，usertrap调用 `syscall` 处理；如果是设备中断，调用 `devintr`；否则认为是异常，内核终止发生错误的进程。
+
+**5.更新用户程序计数器**：
+
+* 对于系统调用的情况，`sepc` 的值增加 4，因为 RISC-V 的系统调用时会将 `pc` 指向`ecall` 指令处，而用户代码需要从接下来的指令继续执行。
+
+**6.检查进程状态**：
+
+* 在处理完这些任务后，`usertrap` 会检查进程是否被终止或是否需要让出 CPU（例如定时器中断）。
+
+`最后，usertrap` 调用 `usertrapret` 函数，真正执行恢复工作。`usertrapret` 会将保存的 `SEPC`（程序计数器）值恢复到 CPU 中，并且恢复其他寄存器的值，确保用户程序能够从中断或系统调用中正确地恢复到原来被中断的位置。
 
 ***
 
 ### **`第三步：usertrapret` 和返回用户空间**
 
-1. **准备控制寄存器**：
+1. ：fanmfanmhu
    * usertrapret会设置 `stvec` 为 `uservec`，以处理未来从用户空间发生的Trao。
    * 将 `stvec` 设置回 `uservec`，并准备好 `uservec` 依赖的 `trapframe` 字段
 2. **调用 `userret`**：
@@ -139,6 +179,8 @@ Xv6 在处理Trap时，根据Trap发生在内核代码还是用户代码中采�
 1. `uservec` 负责从用户代码切换到内核代码。
 2. `usertrap` 负责实际的Trap处理。&#x20;
 3. `usertrapret` 和 `userret` 负责从内核返回用户空间。
+
+
 
 
 
