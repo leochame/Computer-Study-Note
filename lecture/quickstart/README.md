@@ -92,7 +92,7 @@ gdb-multiarch kernel/kernel
 ```
 
 ```
-target remote localhost:25000
+target remote localhost:26000
 ```
 
 ```

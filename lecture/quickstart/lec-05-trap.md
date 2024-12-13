@@ -16,27 +16,27 @@ Trap是CPU中断正常指令流的总称，涵盖了1.系统调用、2.异常和
 
 ## 5.1 RiSC-V Trap 机制
 
-每个 RISC-V CPU 都有一组控制寄存器，内核通过写入这些寄存器来指示 CPU 如何处理Trap；同时，内核也可以通过读取这些寄存器来了解已经发生的陷阱情况。
+每个 RISC-V CPU 都有一组控制寄存器，内核通过写入这些寄存器来指示 CPU 如何处理Trap；同时，内核也可以通过读取这些寄存器来了解已经发生的Trap况。
 
-* **stvec()**&#x53;upervisor Trap Vector Base Address RegisterSupervisor Trap Vector Base Address Register：内核将其处理程序的地址写入此寄存器；当发生Trap时，RISC-V 跳转到 `stvec` 中指定的地址处理Trap。
-* **sepc**：发生陷阱时，RISC-V 将程序计数器（`pc`）保存到 `sepc` 中（因为此时 `pc` 被 `stvec` 的值覆盖）。`sret`（从陷阱返回的指令）会将 `sepc` 的值复制回 `pc`。内核可以写入 `sepc` 以控制 `sret` 的返回地址。
-* **scause**：RISC-V 在此寄存器中记录描述陷阱原因的编号。
-* **sscratch**：陷阱处理程序使用 `sscratch` 帮助避免在保存用户寄存器之前覆盖它们。
+* **stvec(**&#x53;upervisor Trap Vector Base Address Registe&#x72;**)**：内核将其处理程序的地址写入此寄存器；当发生Trap时，RISC-V 跳转到 `stvec` 中指定的地址处理Trap。
+* **sepc**：发生Trap时，RISC-V 将程序计数器（`pc`）保存到 `sepc` 中（因为此时 `pc` 被 `stvec` 的值覆盖）。`sret`（从Trap返回的指令）会将 `sepc` 的值复制回 `pc`。内核可以写入 `sepc` 以控制 `sret` 的返回地址。**在Trap过程中保存程序计数器的值。**
+* **scause**：RISC-V 在此寄存器中记录描述Trap原因的编号。
+* **sscratch**：Trap处理程序使用 `sscratch` 帮助避免在保存用户寄存器之前覆盖它们。
 * **sstatus**：
   * `SIE` 位控制设备中断是否启用。如果内核清除了 `SIE` 位，RISC-V 会延迟设备中断，直到内核重新设置 `SIE`。
-  * `SPP` 位指示陷阱来自用户模式还是监督模式，并决定 `sret` 返回到哪个模式。
+  * `SPP` 位指示Trap来自用户模式还是监督模式，并决定 `sret` 返回到哪个模式。
 
-上述寄存器仅与在监督模式下处理的陷阱相关，用户模式下无法读取或写入这些寄存器。
+上述寄存器仅与在监督模式下处理的Trap相关，用户模式下无法读取或写入这些寄存器。
 
-在多核芯片上，每个 CPU 都有自己独立的一组寄存器，多个 CPU 可能同时处理陷阱。
+在多核芯片上，每个 CPU 都有自己独立的一组寄存器，多个 CPU 可能同时处理Trap。
 
 
 
 **注意：**
 
-**CPU最小化工作：**&#x43;PU 在发生陷阱时不会切换到内核页表，不会切换到内核堆栈，也不会保存除 `pc` 之外的任何寄存器。这些任务需要内核软件完成。CPU最小化给了软件最大灵活性和选择。
+**CPU最小化工作：**&#x43;PU 在发生Trap时不会切换到内核页表，不会切换到内核堆栈，也不会保存除 `pc` 之外的任何寄存器。这些任务需要内核软件完成。CPU最小化给了软件最大灵活性和选择。
 
-**确保 CPU 切换到内核指定的指令地址（即 `stvec`）至关重要**：如果 CPU 不切换程序计数器（`pc`），则用户空间的陷阱可能在保持用户指令运行的同时切换到监督模式。这可能会破坏用户/内核隔离，例如通过修改 `satp` 寄存器指向一个允许访问所有物理内存的页表。
+**确保 CPU 切换到内核指定的指令地址（即 `stvec`）至关重要**：如果 CPU 不切换程序计数器（`pc`），则用户空间的Trap可能在保持用户指令运行的同时切换到监督模式。这可能会破坏用户/内核隔离，例如通过修改 `satp` 寄存器指向一个允许访问所有物理内存的页表。
 
 
 
@@ -44,37 +44,39 @@ Trap是CPU中断正常指令流的总称，涵盖了1.系统调用、2.异常和
 
 ## 5.2 Trap from user space
 
-Xv6 在处理陷阱时，根据陷阱发生在内核代码还是用户代码中采取不同的方式。以下描述的是用户代码中发生陷阱的处理过程，至于内核代码中的陷阱处理则在 &#x35;**.5** 中描述。
+Xv6 在处理Trap时，根据Trap发生在内核代码还是用户代码中采取不同的方式
 
-用户空间中可能出现陷阱的情形包括：
-
-* 用户程序发起系统调用（`ecall` 指令）。
-* 用户程序执行了非法操作。
-* 设备中断。
-
-处理用户空间陷阱的高级路径依次为：
-
-1. **`uservec`**（[`kernel/trampoline.S:22`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trampoline.S#L22)）。
-2. **`usertrap`**（[`kernel/trap.c:37`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trap.c#L37)）。
-3. 返回时依次为 **`usertrapret`**（[`kernel/trap.c:90`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trap.c#L90)）和 **`userret`**（[`kernel/trampoline.S:101`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trampoline.S#L101)）。
+接下来描述了当用户程序发生某些特殊情况（比如调用系统功能、非法操作或者设备中断）时，系统如何接管控制权、处理这些情况，并最终将控制权交还给用户程序的过程。
 
 ***
 
-一个重要的设计约束是：RISC-V 硬件在触发陷阱时不会切换页表。这带来了两个要求：
 
-1. `stvec` 中的陷阱处理程序地址在当前user page table中必须有效。
-2. 内核的陷阱处理代码需要切换到内核page table。为了在切换后继续执行，内核页表也必须包含 `stvec` 指向的处理程序地址的映射。
 
-Xv6 通过 **trampoline 页** 满足这些要求：
+当用户程序执行系统调用（`ecall` 指令）、发生非法操作，或者设备中断时，Trap可能发生。用户空间的陷阱处理流程是这样的：
 
-* **Trampoline 页**：包含 `uservec` 的代码，且被映射到每个进程的页表中虚拟地址 `TRAMPOLINE` 处（位于虚拟地址空间顶部）。
-  * 这个地址高于程序可能使用的内存范围。
-  * Trampoline 页同时也映射在内核页表中，位于相同的虚拟地址 `TRAMPOLINE`。
+1. 进入 **uservec** （位于 `kernel/trampoline.S:22`）。
+2. 然后执行 **usertrap** （位于 `kernel/trap.c:37`）。
+3. 返回时调用 **usertrapret** （位于 `kernel/trap.c:90`），最后由 **userret** （位于 `kernel/trampoline.S:101`）恢复到用户空间。
 
-这样设计的好处：
+***
 
-* 用户页表中映射的 trampoline 页允许陷阱在进入监督模式后开始执行。
-* 内核页表中同样的地址映射使得陷阱处理代码在切换页表后能够继续执行。
+### 设计限制
+
+一个重要的设计约束是：RISC-V 硬件在触发Trap时不会切换页表。这带来了两个要求：
+
+1. `stvec` 中的指向Trap处理程序地址，必须在当前user page table中必须有效。因为在Trap处理代码开始执行的时候，仍然是用户页表生效。
+2. 操作系统需要切换到 **内核页表**，以便能继续执行。而在那时，内核页表也需要映射 `stvec` 指向的Trap处理程序。
+
+
+
+为了满足这些条件，Xv6 使用了 **trampoline page**：
+
+* **Trampoline page** 包含 `uservec` 的代码（即 `stvec` 指向的Trap处理程序。），且被映射到每个进程的页表中虚拟地址 `TRAMPOLINE` 处（位于虚拟地址空间顶部）。
+* **trampoline page** 被映射到每个进程的页表中的一个固定地址（`TRAMPOLINE`，位于虚拟地址空间的顶部，这样就不会与用户程序使用的内存地址重叠）。同样，**trampoline page** 也在内核页表中映射。
+
+这样，在用户空间发生tarp时，tarp可以在监督模式下开始执行，因为 `trampoline page` 被映射到用户页表中。而当切换到内核页表后，trap处理程序可以继续执行。
+
+
 
 ***
 
@@ -83,11 +85,12 @@ Xv6 通过 **trampoline 页** 满足这些要求：
 `uservec` 位于 `trampoline.S` 文件（[`kernel/trampoline.S:22`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trampoline.S#L22)）。它的任务如下：
 
 1. **保存用户寄存器**：
-   * 当 `uservec` 开始执行时，所有 32 个寄存器的值均属于被中断的用户代码。为了返回到用户空间，这些寄存器需要保存在内存中。
+   * 当 `uservec` 开始执行时，所有 32 个寄存器的值均属于被中断的用户代码。为了返回到用户空间后可以恢复，这些寄存器需要保存在内存中。
    * 存储寄存器的值需要使用一个寄存器作为地址，而此时没有可用的通用寄存器。RISC-V 提供了 `sscratch` 寄存器来解决这个问题。
-   * `uservec` 的第一条指令使用 `csrw` 将 `a0` 的值存储到 `sscratch` 中，这样 `uservec` 就可以使用 `a0` 作为工作寄存器。
-2. **保存用户寄存器到 trapframe**：
-   * 每个进程都有一页内存用于存储一个 `trapframe` 结构（[`kernel/proc.h:43`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/proc.h#L43)）。`trapframe` 包括保存 32 个用户寄存器的空间。
+   * `uservec` 开始时通过 `csrw` 指令将 `a0` 的值保存到 `sscratch` 中。这样，`uservec` 就有了一个可用的寄存器 `a0`。
+2. **接下来就是保存32位用户寄存器到** ：
+   * 操作系统为每个进程都有一页内存用于存储一个 `trapframe` 结构（[`kernel/proc.h:43`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/proc.h#L43)）。`trapframe` 包括保存 32 个用户寄存器的空间。
+   * 每个用户进程都有自己的一页，用来存储它的状态。操作系统已经在进程的页表里“悄悄”安排好这个页面了，每个进程都能通过固定的虚拟地址（`0x3ffffffe000`）找到它。
    * 因为此时的 `satp` 仍然指向用户页表，`trapframe` 必须映射到用户地址空间。Xv6 将每个进程的 `trapframe` 映射到 `TRAPFRAME` 虚拟地址（位于 `TRAMPOLINE` 之下）。
 3. **切换到内核页表**：
    * `uservec` 从 `trapframe` 中加载内核页表的地址，并切换 `satp` 到内核页表。
@@ -97,13 +100,13 @@ Xv6 通过 **trampoline 页** 满足这些要求：
 
 **`usertrap` 的处理过程**
 
-`usertrap` 的任务是分析陷阱原因并处理（[`kernel/trap.c:37`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trap.c#L37)）。它的主要步骤包括：
+`usertrap` 的任务是分析Trap原因并处理（[`kernel/trap.c:37`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trap.c#L37)）。它的主要步骤包括：
 
-1. **调整陷阱处理程序**：
-   * 将 `stvec` 设置为 `kernelvec`，以便处理后续内核中的陷阱。
+1. **调整Trap处理程序**：
+   * 将 `stvec` 设置为 `kernelvec`，以便处理后续内核中的Trap。
 2. **保存状态**：
    * 保存 `sepc`（用户程序计数器）以备后续返回。
-   * 如果陷阱是系统调用，调用 `syscall` 处理；如果是设备中断，调用 `devintr`；否则认为是异常，内核终止发生错误的进程。
+   * 如果Trap是系统调用，调用 `syscall` 处理；如果是设备中断，调用 `devintr`；否则认为是异常，内核终止发生错误的进程。
 3. **更新用户程序计数器**：
    * 对于系统调用的情况，`sepc` 的值增加 4，因为 RISC-V 的系统调用将 `pc` 留在 `ecall` 指令处，而用户代码需要从下一条指令继续执行。
 4. **检查进程状态**：
@@ -130,7 +133,7 @@ Xv6 通过 **trampoline 页** 满足这些要求：
 **模块化流程**：
 
 1. `uservec` 负责从用户代码切换到内核代码。
-2. `usertrap` 负责实际的陷阱处理。&#x20;
+2. `usertrap` 负责实际的Trap处理。&#x20;
 3. `usertrapret` 和 `userret` 负责从内核返回用户空间。
 
 
@@ -139,7 +142,7 @@ Xv6 通过 **trampoline 页** 满足这些要求：
 
 user调用`exec`执行system call的过程：
 
-* 把给`exec`使用的参数放到a0和a1寄存器中，把system call的代码(SYS\_exec)放到a7寄存器中，执行ecall指令陷入内核，切换到特权模式：
+* 把给`exec`使用的参数放到a0和a1寄存器中，把system call的代码(SYS\_exec)放到a7寄存器中，执行ecall指令进入内核，切换到特权模式：
   * **`uservec`**：保存用户寄存器到进程的 `trapframe`。
   * **`usertrap`**：检测到这是系统调用后，调用 `syscall` 处理。
   * **`syscall`**：
