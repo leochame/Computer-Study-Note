@@ -67,8 +67,6 @@ Xv6 在处理Trap时，根据Trap发生在内核代码还是用户代码中采�
 1. `stvec` 中的指向Trap处理程序地址，必须在当前user page table中必须有效。因为在Trap处理代码开始执行的时候，仍然是用户页表生效。
 2. 操作系统需要切换到 **内核页表**，以便能继续执行。而在那时，内核页表也需要映射 `stvec` 指向的Trap处理程序。
 
-
-
 为了满足这些条件，Xv6 使用了 **trampoline page**：
 
 * **Trampoline page** 包含 `uservec` 的代码（即 `stvec` 指向的Trap处理程序。），且被映射到每个进程的页表中虚拟地址 `TRAMPOLINE` 处（位于虚拟地址空间顶部）。
@@ -84,17 +82,23 @@ Xv6 在处理Trap时，根据Trap发生在内核代码还是用户代码中采�
 
 `uservec` 位于 `trampoline.S` 文件（[`kernel/trampoline.S:22`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/trampoline.S#L22)）。它的任务如下：
 
-1. **保存用户寄存器**：
-   * 当 `uservec` 开始执行时，所有 32 个寄存器的值均属于被中断的用户代码。为了返回到用户空间后可以恢复，这些寄存器需要保存在内存中。
-   * 存储寄存器的值需要使用一个寄存器作为地址，而此时没有可用的通用寄存器。RISC-V 提供了 `sscratch` 寄存器来解决这个问题。
-   * `uservec` 开始时通过 `csrw` 指令将 `a0` 的值保存到 `sscratch` 中。这样，`uservec` 就有了一个可用的寄存器 `a0`。
-2. **接下来就是保存32位用户寄存器到** ：
-   * 操作系统为每个进程都有一页内存用于存储一个 `trapframe` 结构（[`kernel/proc.h:43`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/proc.h#L43)）。`trapframe` 包括保存 32 个用户寄存器的空间。
-   * 每个用户进程都有自己的一页，用来存储它的状态。操作系统已经在进程的页表里“悄悄”安排好这个页面了，每个进程都能通过固定的虚拟地址（`0x3ffffffe000`）找到它。
-   * 因为此时的 `satp` 仍然指向用户页表，`trapframe` 必须映射到用户地址空间。Xv6 将每个进程的 `trapframe` 映射到 `TRAPFRAME` 虚拟地址（位于 `TRAMPOLINE` 之下）。
-3. **切换到内核页表**：
-   * `uservec` 从 `trapframe` 中加载内核页表的地址，并切换 `satp` 到内核页表。
-   * 接着，`uservec` 跳转到 `usertrap`。
+**首先，保存用户寄存器**：
+
+* 当 `uservec` 开始执行时，所有 32 个寄存器的值均属于被中断的用户代码。为了返回到用户空间后可以恢复，这些寄存器需要保存在内存中。
+* 存储寄存器的值需要使用一个寄存器作为地址，而此时没有可用的通用寄存器。RISC-V 提供了 `sscratch` 寄存器来解决这个问题。
+* `uservec` 开始时通过 `csrw` 指令将 `a0` 的值保存到 `sscratch` 中。这样，`uservec` 就有了一个可用的寄存器 `a0`。
+
+**接下来，就是保存32位用户寄存器到** ：
+
+* 操作系统为每个进程都有一页内存用于存储一个 `trapframe` 结构（[`kernel/proc.h:43`](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/proc.h#L43)）。`trapframe` 包括保存 32 个用户寄存器的空间。
+* 每个用户进程都有自己的一页，用来存储它的状态。操作系统已经在进程的页表里“悄悄”安排好这个页面了，每个进程都能通过固定的虚拟地址（`0x3ffffffe000`）找到它。
+* 因为此时的 `satp` 仍然指向用户页表，`trapframe` 必须映射到用户地址空间。Xv6 将每个进程的 `trapframe` 映射到 `TRAPFRAME` 虚拟地址（位于 `TRAMPOLINE` 之下）。
+
+因此，`uservec` 将 `TRAPFRAME` 的地址加载到 `a0` 寄存器，并将所有用户寄存器的内容保存到这个位置，包括从 `sscratch` 中读取回来的 `a0` 值。
+
+**最后，**&#x54;r`pframe` 中还包含了当前进程的内核栈地址、当前 CPU 的 `hartid`、`usertrap` 函数的地址，以及内核页表的地址。
+
+`uservec` 会读取这些值，将 `satp` 切换到内核页表，并跳转到 `usertrap`
 
 ***
 

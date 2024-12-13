@@ -4,13 +4,13 @@
 
 ## OS
 
-* [MIT 6.S081](os/quickstart/README.md)
-  * [Lec01](os/quickstart/lec01.md)
-  * [Lec 03](os/quickstart/lec-03.md)
-  * [Lec 04 Page tables](os/quickstart/lec-04-page-tables.md)
-  * [Lec 05 Trap](os/quickstart/lec-05-trap.md)
+* [MIT 6.S081](lecture/quickstart/README.md)
+  * [Lec01](lecture/quickstart/lec01.md)
+  * [Lec 03](lecture/quickstart/lec-03.md)
+  * [Lec 04 Page tables](lecture/quickstart/lec-04-page-tables.md)
+  * [Lec 05 Trap](lecture/quickstart/lec-05-trap.md)
 
 ## ComputerNetwork
 
-* [A Top Down Approach](computernetwork/a-top-down-approach/README.md)
-  * [Lab](computernetwork/a-top-down-approach/lab.md)
+* [A Top Down Approach](computernetwork/computernetwork-a-top-down-approach/README.md)
+  * [Lab](computernetwork/computernetwork-a-top-down-approach/lab.md)
