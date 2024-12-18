@@ -18,7 +18,16 @@
 
 所有的设备都连接到处理器上，处理器上是通过Platform Level Interrupt Control，简称PLIC来处理设备中断。
 
-&#x20;<&#x20;
+&#x20;中断到达PLIC后，PLIC会路由这些中单，路由到某个CPU核。如果所有的CPU核都在处理中断，PLIC会将中断等待CPU核空闲。   大致流程如下：
+
+* PLIC会通知当前有一个待处理的中断
+* 其中一个CPU核会Claim接收中断，这样PLIC就不会把中断发给其他的CPU处理
+* CPU核处理完中断之后，CPU会通知PLIC
+* PLIC将不再保存中断的信息
+
+&#x20;&#x20;
+
+
 
 <figure><img src="../../.gitbook/assets/image (9).png" alt=""><figcaption></figcaption></figure>
 
