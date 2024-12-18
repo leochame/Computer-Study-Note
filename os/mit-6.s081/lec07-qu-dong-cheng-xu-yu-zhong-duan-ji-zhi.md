@@ -12,13 +12,15 @@
 * concurrency：CPU和生成中断的设备是并行的运行。网卡自己独立处理来自网络的packet,然后在某个时间点产生中断。但是同时，CPU也是在运行。所以我们在CPU和设备之间是真正的并行，我们必须管理这里的并行。
 * program device。我们需要主要关注外部设备，例如网卡，UART，而这些设备需要被编程。
 
-&#x20;&#x20;
+&#x20;
 
-w
+我们主要关心外部设备的中断：
 
-所有的设备都连接到处理器上，处理器上是通过Platform Level Interrupt Control，简称PLIC来处理设备中断
+所有的设备都连接到处理器上，处理器上是通过Platform Level Interrupt Control，简称PLIC来处理设备中断。
 
+&#x20;<&#x20;
 
+<figure><img src="../../.gitbook/assets/image (9).png" alt=""><figcaption></figcaption></figure>
 
 
 
