@@ -34,7 +34,7 @@ RISC-V指令（用户态和内核态）都是操作虚拟地址。机器的RAM�
 >
 >
 
-<figure><img src="../../.gitbook/assets/image (5).png" alt="" width="301"><figcaption><p>Page Table</p></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (5) (1).png" alt="" width="301"><figcaption><p>Page Table</p></figcaption></figure>
 
 **RISC-V CPU** 将 **虚拟地址** 转换为 **物理地址** 的时，使用了一个类似B+树+字典树的 **三层树结构** 来存储 **页表**。
 
@@ -50,7 +50,7 @@ RISC-V指令（用户态和内核态）都是操作虚拟地址。机器的RAM�
 
 如果三个PTE任意一个不存在，分页硬件就会触发故障，由内核处理。
 
-<figure><img src="../../.gitbook/assets/image (6).png" alt="" width="375"><figcaption><p>RISC-V address translation details.</p></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (6) (1).png" alt="" width="375"><figcaption><p>RISC-V address translation details.</p></figcaption></figure>
 
 要告诉CPU使用页表，内核必须将根页表的物理地址写入satp寄存器。随后指令生成的所有地址都将通过页表（被该 `satp` 寄存器指向的）进行转换。每个 CPU 都有自己的 `satp`，因此不同的 CPU 可以运行不同的进程，每个进程都有由其页表描述的私有地址空间。
 

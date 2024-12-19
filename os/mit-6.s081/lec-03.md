@@ -69,7 +69,7 @@
 * **优点**：减少在内核空间运行的代码量，从而降低错误风险。操作系统服务作为用户级进程运行，通过进程间通信机制进行交互。
 * **例子**：图2.1中，文件系统作为用户级进程运行，内核提供进程间通信机制，允许应用程序与文件服务器交互。
 
-<figure><img src="../../.gitbook/assets/image (2).png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (2) (1).png" alt=""><figcaption></figcaption></figure>
 
 3. **现实应用**：
 
@@ -239,7 +239,7 @@
 * Shell运行了一段时间之后，需要让别的程序也有机会能运行。 这种机制有时候称为协同调度（Cooperative Scheduling）。但是在这里Shell中的某个函数有一个死循环，那么Shell永远也不会释放CPU，进而其他的应用程序也不能够运行，甚至都不能运行一个第三方的程序来停止或者杀死Shell程序。所以这种场景下，我们基本上得不到真正的multiplexing（CPU在多进程同分时复用。
 * 内存角度来讲，应用程序如果直接运行在硬件程序上，每个程序直接保存在物理内存。应用程序可能会没有边界感。例如：内存地址1000存储了echo的数据，但是Shell可能将其覆盖。
 
-<figure><img src="../../.gitbook/assets/image (3).png" alt="" width="256"><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (3) (1).png" alt="" width="256"><figcaption></figcaption></figure>
 
 我们使用操作系统最主要的原因就是为了实现 **multiplexing** 和 **内存隔离** 。但是不通过操作系统，应用程序直接与硬件交互，很难实现这点。所以，除了实时操作系统有将操作系统设计为库的设计，因为实时操作系统中，应用程序彼此之间相互信任，大部分操作系统都会强制实现硬件资源隔离。
 
@@ -312,7 +312,7 @@ User Mode和Kernel Mode的关系大致如下：
 
 如Shell调用了exec，必须有种方式可以接入到文件系统中。通常来说，这里工作的方式是，Shell会通过内核中的IPC系统发送一条消息，内核会查看这条消息并发现这是给文件系统的消息，之后内核会把消息发送给文件系统。
 
-<figure><img src="../../.gitbook/assets/image (1).png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (1) (1).png" alt=""><figcaption></figcaption></figure>
 
 文件系统会完成它的工作之后会向IPC系统发送回一条消息说，这是你的exec系统调用的结果，之后IPC系统再将这条消息发送给Shell。
 

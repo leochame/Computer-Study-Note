@@ -106,7 +106,7 @@ serverSocket.close()
 
 WEB服务器接收到客户端请求后，就会响应该请求。
 
-<figure><img src="../../.gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (7).png" alt=""><figcaption></figcaption></figure>
 
 ```python
 #import socket module
