@@ -1,4 +1,4 @@
-# Lec 01
+# Lec 01: Introduction and Examples
 
 ## LEC 01 <a href="#tst9g" id="tst9g"></a>
 

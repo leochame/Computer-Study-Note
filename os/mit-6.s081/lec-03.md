@@ -1,4 +1,4 @@
-# Lec 03
+# Lec 03: Isolation & system call entry/exit
 
 操作系统需要支持多个活动，例如 fork 的时候，操作系统需要在这些进程之间分配计算机资源。即使在进程数大于 CPU 数的情况下。此外为了一个进程出现 Bug 不会影响其他进程。操作系统必须满足三个条件：多路复用、隔离和交互。
 
@@ -312,7 +312,7 @@ User Mode和Kernel Mode的关系大致如下：
 
 如Shell调用了exec，必须有种方式可以接入到文件系统中。通常来说，这里工作的方式是，Shell会通过内核中的IPC系统发送一条消息，内核会查看这条消息并发现这是给文件系统的消息，之后内核会把消息发送给文件系统。
 
-<figure><img src="../../.gitbook/assets/image (1) (1).png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (1) (1) (1).png" alt=""><figcaption></figcaption></figure>
 
 文件系统会完成它的工作之后会向IPC系统发送回一条消息说，这是你的exec系统调用的结果，之后IPC系统再将这条消息发送给Shell。
 

@@ -1,4 +1,4 @@
-# Lec07 驱动程序与中断机制
+# Lec07：Interupt And Drive device
 
 ## 一、**硬件部分**
 
@@ -56,7 +56,7 @@
 * CPU核处理完中断之后，CPU会通知PLIC
 * PLIC将不再保存中断的信息
 
-<figure><img src="../../.gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (1).png" alt=""><figcaption></figcaption></figure>
 
 ## 二、驱动程序与中断概述 <a href="#sbuoe" id="sbuoe"></a>
 
