@@ -56,7 +56,7 @@
 * CPU核处理完中断之后，CPU会通知PLIC
 * PLIC将不再保存中断的信息
 
-<figure><img src="../../.gitbook/assets/image (1).png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (1) (1).png" alt=""><figcaption></figcaption></figure>
 
 ## 二、驱动程序与中断概述 <a href="#sbuoe" id="sbuoe"></a>
 
@@ -240,15 +240,15 @@ CPU执行load/store指令时，并不是操作内存，而是与设备的寄存�
 
 
 
-<figure><img src="../../.gitbook/assets/image (2).png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (2) (1).png" alt=""><figcaption></figcaption></figure>
 
 首先追踪 trap.c ，我们可以看到 `devintr()`函数。我们事实上可以根据`devintr()`函数中去判断，SCAUSE 寄存器判断当前中断是否来自于外设的中断。如果是的话，再调用plic\_claim函数来获取中断。
 
-<figure><img src="../../.gitbook/assets/image (3).png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (3) (1).png" alt=""><figcaption></figcaption></figure>
 
 plic\_claim函数位于plic.c文件中。在这个函数中，当前CPU核会告知PLIC，自己要处理中断，PLIC\_SCLAIM会将中断号返回，对于UART来说，返回的中断号是10。
 
-<figure><img src="../../.gitbook/assets/image (4).png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (4) (1).png" alt=""><figcaption></figcaption></figure>
 
 从devintr函数可以看出，如果是UART中断，那么会调用uartintr函数。我们现在讨论的是向UART发送数据。因为我们现在还没有通过键盘输入任何数据，所以UART的接受寄存器现在为空。会直接跳到运行 uartstart函数
 

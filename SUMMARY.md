@@ -13,6 +13,7 @@
   * [Lec11：Thread Switch](os/mit-6.s081/lec11-thread-switch.md)
   * [Lec 13：sleep Andwake up](os/mit-6.s081/lec-13-sleep-andwake-up.md)
   * [Lecture14：File Syetem](os/mit-6.s081/lecture14-file-syetem.md)
+  * [Lec15：Crash Safety](os/mit-6.s081/lec15-crash-safety.md)
 
 ## ComputerNetwork
 

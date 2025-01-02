@@ -14,7 +14,7 @@ xv6 CPU切换进程实现 Multiplexing 一般是两种情况。一个是 sleep �
 
 ## 一、 Context Switch <a href="#wuugi" id="wuugi"></a>
 
-<figure><img src="../../.gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image (4).png" alt=""><figcaption></figcaption></figure>
 
 Figure7.1 涵盖了从一个用户进程切换到另一个的过程：通过 trap 从 shell 的用户进程到 old process's kernel thread，一个 context switch 到当前 CPU 的 sheduler thread，一个 contex switch 到 new thread 的 kernel thread，然后再经过 trap 返回用户空间。
 
