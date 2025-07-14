@@ -1,91 +1,41 @@
-# MIT 6.S081
+# 学习笔记
 
+本仓库包含我个人关于计算机科学各个主题的学习笔记。
 
+## 目录
 
-## Introduction <a href="#tst9g" id="tst9g"></a>
+- [计算机网络](#计算机网络)
+- [大型语言模型 (LLM)](#大型语言模型-llm)
+- [操作系统](#操作系统)
 
-这是本人对 MIT 的 OS 公开课程的笔记，本人英语能力有限，课程视频并未采用最新的 2024，而是去看的是 2022 的视频，结合了网上的诸多开源资料：
+## 计算机网络
 
-MIT 6.S081 Schedule：[6.1810 / Fall 2024 (mit.edu)](https://pdos.csail.mit.edu/6.S081/2024/schedule.html)
+关于《计算机网络：自顶向下方法》的笔记。
 
-fanxiao笔记：[MIT 6.S081 Lecture Notes - Xiao Fan's Personal Page (fanxiao.tech)](https://fanxiao.tech/posts/2021-03-02-mit-6s081-notes/#11-processes-and-memory)
+- [README](./computernetwork/computernetwork-a-top-down-approach/README.md)
+- [实验](./computernetwork/computernetwork-a-top-down-approach/lab.md)
 
-视频：[【操作系统工程】精译【MIT 公开课 MIT6.S081】\_哔哩哔哩\_bilibili](https://www.bilibili.com/video/BV1rS4y1n7y1/?spm_id_from=333.337.search-card.all.click\&vd_source=09b781e37940ba73b70deb9e59824d33)
+## 大型语言模型 (LLM)
 
-中文文档：[简介 | MIT6.S081 (gitbook.io)](https://mit-public-courses-cn-translatio.gitbook.io/mit6-s081)
+从零开始构建大型语言模型的笔记。
 
+- [第二章](./llm/llms-from-srcatch/ch02.ipynb)
 
+## 操作系统
 
-如何调试：\
-首先在一个窗口执行
+关于 MIT 6.S081: 操作系统工程的笔记。
 
-```
-make CPUS=1 qemu-gdb
-```
-
-在另一个窗口执行
-
-```
-riscv-64-unknown-elf-gdb
-```
-
-```
-tui enable
-```
-
-berek 打断点
-
-```
-b
-```
-
-继续运行，continue
-
-```
-c
-```
-
-得到源码窗口
-
-```
-layout sources
-```
-
-
-
-得到汇编指令
-
-```
-layout asm
-```
-
-展示c语言代码
-
-```
-layout source
-```
-
-得到源码和汇编窗口
-
-```
-layout split
-```
-
-
-
-补充执行
-
-```
-gdb-multiarch kernel/kernel
-```
-
-```
-target remote localhost:26000
-```
-
-```
-layout split
-```
+- [第一讲：简介与示例](./os/mit-6.s081/lec01.md)
+- [第三讲：隔离与系统调用入口/出口](./os/mit-6.s081/lec-03.md)
+- [第四讲：页表](./os/mit-6.s081/lec-04-page-tables.md)
+- [第五讲：陷阱 (Trap)](./os/mit-6.s081/lec-05-trap.md)
+- [第六讲：缺页中断](./os/mit-6.s081/lec-06-page-fault.md)
+- [第七讲：驱动程序与中断机制](./os/mit-6.s081/lec07-qu-dong-cheng-xu-yu-zhong-duan-ji-zhi.md)
+- [第十讲：锁](./os/mit-6.s081/lec10-lock.md)
+- [第十一讲：线程切换](./os/mit-6.s081/lec11-thread-switch.md)
+- [第十三讲：睡眠与唤醒](./os/mit-6.s081/lec-13-sleep-andwake-up.md)
+- [第十四讲：文件系统](./os/mit-6.s081/lecture14-file-syetem.md)
+- [第十五讲：崩溃安全](./os/mit-6.s081/lec15-crash-safety.md)
 
 
 
